@@ -5,6 +5,9 @@
 
 #pragma comment (lib, "d3d11.lib")
 
+#define SCREEN_WIDTH  800
+#define SCREEN_HEIGHT 600
+
 IDXGISwapChain* swapChain;
 ID3D11Device* device;
 ID3D11DeviceContext* deviceContext;
@@ -19,10 +22,13 @@ void InitD3D(HWND hWnd) {
     ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
     scd.BufferCount = 1;
     scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    scd.BufferDesc.Width = SCREEN_WIDTH;
+    scd.BufferDesc.Height = SCREEN_HEIGHT;
     scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     scd.OutputWindow = hWnd;
     scd.SampleDesc.Count = 4;
     scd.Windowed = true;
+    scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL, NULL, NULL, D3D11_SDK_VERSION, &scd, &swapChain, &device, NULL, &deviceContext);
 
     ID3D11Texture2D* pBackBuffer;
@@ -38,16 +44,26 @@ void InitD3D(HWND hWnd) {
     ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
-    viewport.Width = 800;
-    viewport.Height = 600;
+    viewport.Width = SCREEN_WIDTH;
+    viewport.Height = SCREEN_HEIGHT;
     deviceContext->RSSetViewports(1, &viewport);
 }
 
 void CleanD3D(void) {
+    swapChain->SetFullscreenState(FALSE, NULL);
     swapChain->Release();
     backBuffer->Release();
     device->Release();
     deviceContext->Release();
+}
+
+void InitPipeline()
+{
+    // load and compile the two shaders
+    ID3D10Blob* VS, * PS;
+    
+    D3DX11CompileFromFile(L"shaders.shader", 0, 0, "VShader", "vs_4_0", 0, 0, 0, &VS, 0, 0);
+    D3DX11CompileFromFile(L"shaders.shader", 0, 0, "PShader", "ps_4_0", 0, 0, 0, &PS, 0, 0);
 }
 
 void RenderFrame(void) {
@@ -82,14 +98,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
+    //wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
     wc.lpszClassName = L"WindowClass1";
 
     // register the window class
     RegisterClassEx(&wc);
 
-    RECT wr = { 0, 0, 500, 400 };    // set the size, but not the position
-    AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);    // adjust the size
+    //RECT wr = { 0, 0, 500, 400 };    // set the size, but not the position
+    //AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);    // adjust the size
 
     // create the window and use the result as the handle
     hWnd = CreateWindowEx(NULL,
@@ -98,8 +114,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
         WS_OVERLAPPEDWINDOW,    // window style
         300,    // x-position of the window
         300,    // y-position of the window
-        wr.right - wr.left,    // width of the window
-        wr.bottom - wr.top,    // height of the window
+        SCREEN_WIDTH,    // width of the window
+        SCREEN_HEIGHT,    // height of the window
         NULL,    // we have no parent window, NULL
         NULL,    // we aren't using menus, NULL
         hInstance,    // application handle
